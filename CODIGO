@@ -1,0 +1,482 @@
+#LIBRERIA DE IMPORTACIONES
+
+from csv import reader #CSV PARA EL USO DE ARCHIVOS
+import random #PARA EL USO DE NUMERO O PALABRAS ALAZAR
+from time import sleep #LO UTILIZAMOS PARA DAR UN TIEMPO ESTIMADO AL PROGRAMA
+import datetime #PARA REALIZAR VALIDACION DE FECHAS
+import re # RE PARA EL USO DE VALIDACIONES
+import sys  #
+import os  #PARA EL USO DE LOS ARCHIVOS CSV
+ #PARA EL USO DE LOS ARCHIVOS DE EXCEL.
+import sqlite3 #PARA EL USO Y CREACION DE LA BASE DE DATOS
+from sqlite3 import Error
+#Listas y diccionarios para alamacenar los datos y despues pasarlos a la base de datos.
+diccionario_salas={}#Sala a cambiar.
+diccionario_cambiar={}#El diccionario se utliza para modificar datos.
+clave_id={} #Guardamos la clave id del usuario.
+nombre={} #Nombre del usuario.
+sala_id={} #El id de la sala se guarda aqui.
+cupo={}#Guardamos el cupo de la sala registrada
+fecha_registrada=[]#guardamos la fecha que registramos.
+turno_reservado=[]#El turno que el usuario va reservado.
+reservacion_creada={} #Aqui se guarda la reservacion que van creado.
+nombre_evento=[]#En esta lista documentamos el nombre del evento.
+folio={} #En esta llave documentamos el folio que generamos.
+nombre_sala={} #En esta lista guardamos el nombre de la sala que el usuario agrega.
+registros={} #Aqui guardamos basicamente todo.
+#Creamos nuestra base de datos con el nombre 'SalasCoworking.db'.
+while True:
+    try:
+        with sqlite3.connect("SalasCoworking.db") as conn:
+            mi_cursor = conn.cursor()
+            mi_cursor.execute("CREATE TABLE IF NOT EXISTS clientes (clave_id INTEGER PRIMARY KEY ,nombre TEXT NOT NULL);")#
+            mi_cursor.execute("CREATE TABLE IF NOT EXISTS salas (sala_id INTEGER  NOT NULL PRIMARY KEY,nombre_sala TEXT NOT NULL,cupo INTEGER NOT NULL);")
+            mi_cursor.execute("CREATE TABLE IF NOT EXISTS reservaciones (fecha_registrada timestamp, nombre_evento TEXT NULL, turno_reservado TEXT NOT NULL);")
+    except Error as e:
+        print (e)
+    except:
+        print("OCURRIO UN ERROR")
+#Menú con una bienvenida al usuario.
+    print("==============================================")
+    print("========Bienvendo a salas Coworking===========")
+    print("==============================================")
+    sleep(1)
+    print("------------------MENU DE OPCIONES----------------------")
+    print("|                 1.Reservaciones.                     |")
+    print("|                 2.Reportes.                          |")
+    print("|                 3.Registrar una sala.                |")
+    print("|                 4.Registrar un nuevo cliente.        |")
+    print("|                 5.Salir.                             |")
+    print("--------------------------------------------------------")
+
+    opcion_menu=int(input("Elija la opcion deseada: "))
+    lis_menu=[1,2,3,4,5]
+    #Si la opcion no esta dentro de las opciones dara un aviso de error y continuara.
+    if opcion_menu not in lis_menu:
+        print( "Error, ingrese una opcion del Menú")
+    #
+    if opcion_menu == 1:
+        while True:
+            print("------------------MENU DE OPCIONES---------------------")
+            print("|         MENU DE OPCIONES PARA RESERVACIONES          |")
+            print("|         1.REGISTRAR UNA NUEVA RESERVACION            |")
+            print("|    2.MODIFICAR DESCRIPCIONES DE UNA RESERVACION      |")
+            print("|  3.CONSULTAR DISPONIBILIDAD DE SALAS PARA UNA FECHA  |")
+            print("|               4.ELIMINAR UNA RESERVACION             |")
+            print("|               5.VOLVER AL MENU PRINCIPAL             |")
+            print("-------------------------------------------------------")
+            opcion_reservacion=int(input("¿Que opcion desea utilizar? "))
+            if opcion_reservacion not in lis_menu:
+                print( "Error, ingrese una opcion del Menú")
+            if opcion_reservacion==5:
+                break
+            if opcion_reservacion==1:
+                if not nombre_sala:
+                    print("No hay ninguna sala registrada")
+                    continue
+                while True:
+                    print("Si desea reservar una sala porfavor ingrese una su ID.")
+                    cliente_reservar=input(":")
+                    if cliente_reservar=="":
+                        print("Debe de ingresar un ID")
+                        continue
+                    cliente_reservar= int (cliente_reservar)
+                    if cliente_reservar not in nombre.keys():
+                        print("No se encontro ningun cliente con ese ID")
+                        break
+
+                    while True:
+                            print("SALAS DISPONIBLES")
+                            print("SALA | CUPO | NOMBRE DE LA SALA")
+                            print(nombre_sala,cupo , sala_registro)
+                            sala_selecionada= input("Seleccione una sala:  ")
+
+                            if sala_selecionada == "":
+                                print("Debe seleccionar una sala. \n")
+                                continue
+                            if sala_selecionada == " ":
+                                print("Debe seleccionar una sala. \n")
+                                continue
+                            
+                            sala_selecionada= int(sala_selecionada)
+
+                            if sala_selecionada not in nombre_sala.keys():
+                                print("No hay una sala con ese ID.")
+                                continue
+                            break
+                    
+                    while True:#Ingresarla fecha de reservacion con anticipo de dos dias.
+                        fecha_registro = input( " Ingrese la fecha con el formato (dd/mm/aaaa): \n").strip()
+                        if fecha_registro == "":
+                            print(" Debe ingresar una fecha.")
+                            continue
+                        if fecha_registro==" ":
+                            print("Debe ingresar una fecha.")
+                            continue
+                        try:
+                            fecha_registro= datetime.datetime.strptime(fecha_registro,"%d/%m/%Y").date()
+                        except:
+                            print("La fecha  ingresada no es valida.")
+                            continue
+                        
+                        fecha_actual=datetime.date.today()
+                        dia_siguiente= fecha_actual+datetime.timedelta(days=+1)
+                        if fecha_registro<=dia_siguiente:
+                            print(f"!Fecha rechazada, se necesitan dos días de anticipo!")
+                            continue
+                        break
+                    
+                    while True:#Reservamos el turno##########3
+                        turnos=["(M) Matutino", "(V) Vespertino","(N) Nocturno"]
+                        turnoo=["M","V","N"]
+                        print(turnos)
+                        turno_reservado=input("Ingrese el turno que desea: ")
+                        if turno_reservado not in turnoo:
+                            print(" Debes seleccionar una opción disponible en el menú, intenta de nuevo.")
+                            continue
+                        if turno_reservado == "":
+                            print("Debe Seleccionar un turno.")
+                            continue
+                        if turno_reservado ==" ":
+                            print("Debe Seleccionar un turno.")
+                            continue
+                        if fecha_registro == fecha_registrada and turno== turno_reservado:
+                            print("Fecha y turno no estan disponibles")
+                            print("Intentelo Nuevamente")
+                            continue
+                        while True:
+                            nombre_evento = input("Favor de ingresar el nombre del evento:  ").title()
+                            if nombre_evento == "":
+                                print("Debe ingresar un nombre del evento.")
+                                continue
+                            if nombre_evento==" ":
+                                print("Debe ingresar un nombre del evento.")
+                                continue
+                            try:
+                                with sqlite3.connect("SalasCoworking.db") as conn:
+                                    mi_cursor = conn.cursor()
+                                    valores = ( fecha_registrada,nombre_evento,turno_reservado,)
+                                    mi_cursor.execute("INSERT INTO reservaciones VALUES(?,?,?)", valores)
+                                    print("Se ah registrado exitosamente")
+                                    print("!Reservacion guardada! ")
+                                    folio= max(reservacion_creada.keys(), default=0) + 1
+                                    nombre_sala[folio] = [(fecha_registro,turno_reservado),nombre_sala,clave_id,nombre_evento]
+                                    print("Folio         Fecha Reservacion       Turno       ID Sala         Nombre Del Evento")
+                                    print(folio,"          ",fecha_registro,"           ",turno_reservado,"            ",sala_id,"               ",nombre_evento)
+                                break
+                            except Error as e:
+                                print(e)
+                            except:
+                                print("Lo sentimos ocurrio un error.")
+                                
+                            break
+                    
+            #Modificar una reservacion##############
+            elif opcion_reservacion==2: 
+                while True:
+                    if not reservacion_creada:
+                        print("No existe ninguna reservacion.")
+                        break
+                    folio=input("Ingrese el folio de su reservacion:")
+                    if folio == "":
+                        print("Debe de ingresar el folio de su reservacion:")
+                        continue
+
+                    if folio==" ":
+                        print("Debe de ingresar el folio de su reservacion.")
+                        continue
+                    folio = int(folio)
+                    print("NOMBRE DEL EVENTO\n",reservacion_creada[folio][3])
+                    valores = {"folio":folio}
+                    mi_cursor.execute("SELECT evento FROM reservaciones WHERE folio = :folio", valores)
+                    registro = mi_cursor.fetchall()
+                    if folio not in  registro:
+                        print("No se encontro una reservacion con ese folio.Verifique sus datos.")
+                        break
+                    while True:
+                        nuevo_nombre = input("Ingrese El Nuevo Nombre De Su Evento: ").title()
+                        if nuevo_nombre == "":
+                            print("Debe de ingresar un nombre.")
+                            continue
+                        if nuevo_nombre.isspace():
+                            print("Debe de ingresar un nombre.")
+                            continue
+                        nombre_antiguo = reservacion_creada[folio][3]
+                        reservacion_creada[folio][3] = nuevo_nombre
+                        print("Se modifico el nombre del evento.")
+                        print(f"Nombre Anterior: {nombre_antiguo}\nNombre Nuevo: {nuevo_nombre}")
+                        mi_cursor.execute('UPDATE reservaciones SET evento = (?) WHERE folio=(?);',[nuevo_nombre,folio])
+                        conn.commit()
+                        print("Se modifico el nombre del evento.")
+                        print(f"Nombre Anterior: {nombre_antiguo}\nNombre Nuevo: {nuevo_nombre}")
+                        break
+                    break
+            #Consultar la Disponiblidad.
+            if opcion_reservacion ==3:
+                if not sala_id:
+                    print("No hay salas registradas.")
+                    break 
+                while True:
+                    fecha_registro= input("Ingrese la fecha que desea consultar: ")
+                    if fecha_registro == "":
+                        print("Debe Ingresar una Fecha.")
+                        continue
+                    try:
+                        fecha_registro = datetime.datetime.strptime(fecha_registro,"%d/%m/%Y").date()
+                    except:
+                        print("La fecha que ingreso no es valida.")
+                        continue
+                    encontrados=[]
+                    reservaciones_posibles=[]
+                    for clave_id,datos in reservacion_creada.items():
+                        sala_id, fecha_registrada, turno = (datos[2], datos[0][0], datos[0][1])
+                        if fecha_registrada == fecha_registro:
+                            encontrados.append((nombre_sala, turno))
+                    encontrados=set(encontrados)
+                    for nombre_sala in sala_id.keys():
+                        for turno in turno_reservado.values():
+                            reservaciones_posibles.append((sala_id,turno))
+                    reservas_posibles= set ((reservas_posibles))
+                    salas_turnos=set((reservas_posibles - encontrados))
+                    print(f"Las salas disponibles para la {fecha_registro.strftime('%d/%m/%Y')} son: \n")
+                    print('ID SALA   TURNO')
+                    for sala_id in salas_turnos:
+                        print(f'{sala}')
+                    
+                        criterios = {"Fecha": fecha_registro}
+                        mi_cursor.execute("SELECT turno_reservado,fk_id_sala FROM reservaciones WHERE DATE(fecha_registro)== :fecha;",criterios)
+                        reservaciones_encontradas= mi_cursor.fetchall()
+                        mi_cursor.execute("SELECT sala_id FROM salas")
+                        salas_encontradas = mi_cursor.fetchall()
+                    break
+            
+            #Eliminar una reservacion.##########3
+            elif opcion_reservacion==4:
+                while True:
+                    try:
+                        mi_cursor.execute("SELECT * FROM reservaciones")
+                        registro = mi_cursor.fetchall()
+                        if not registro:
+                            print("lo sentimos no hay ninguna reservacion.")
+                            break
+                    except Error as e:
+                        print(e)
+                    except:
+                        print("Lo sentimos ocurrio un error.")
+                        
+                    folio=input("Ingrese folio de la reservacion").strip()
+                    if folio=="":
+                        print("Debe de ingresa el folio de su reservacion.")
+                        continue
+                    if folio.isspace():
+                        print("El folio no debe de quedar vacio")
+                        continue
+                    if(not re.match("^[0-9]*$",folio)):
+                        print("El folio debe de ser un numero.")
+                    folio=int(folio)
+                    try:
+                        valores = {"folio":folio}
+                        mi_cursor.execute("SELECT * FROM reservaciones WHERE folio = :folio", valores)
+                        registros = mi_cursor.fetchall()
+                        
+                        if not registros:
+                            print("No se encontro una reservacion con ese folio.")
+                            break
+                        else:
+                            for folio, fecha,cliente,sala,evento in registros:
+                                print("Folio Reservacion: ", folio)
+                                print( "Fecha Reservacion: ", fecha_registro)
+                                print( "Turno: ", turno_reservado)
+                                print( "Cliente: ", cliente)
+                                print( "Sala: ", sala_id)
+                                print( "Nombre Del Evento: ", nombre_evento)
+                            while True:
+                                eliminar_reservacion= input("Esta Seguro de Eliminar Esta Reservación  S/N:").upper().strip()
+                                decision=["s","n"]
+                                if eliminar_reservacion not in decision :
+                                    print("Debes Seleccionar Una Opción Disponible Del Menú.\n")
+                                    continue
+                                if decision == "n":
+                                    continue
+                                
+                                if decision =="":
+                                    print("Debe seleccionar una Opción.")
+
+                                if decision.isspace():
+                                    print("Debe seleccionar una Opción.")
+                                    continue
+
+                                if decision =="s":
+                                    print("Usted esta seguro de eliminar esta reservacion?S/N")
+                                    if decision=="s":
+                                        break
+                                    if decision=="n":
+                                        continue
+
+                                if decision == "s":
+                                    mi_cursor.execute("DELETE FROM reservaciones WHERE folio = :folio", valores)
+                                    print("Se Ha eliminado La Reservacion.")
+                                    break
+                    except Error as e:
+                        print(e)
+                    except:
+                        print("Lo sentimos Ocurrio un error.")
+                    break
+    if opcion_menu == 2:
+        while True:
+            try:
+                mi_cursor.execute("SELECT * FROM reservaciones ORDER BY folio")
+                registro = mi_cursor.fetchall()
+
+                if not registro:
+                    print("LO SENTIMOS LA RESERVACION QUE USTED BUSCA NO SE ENCONTRO")
+                    break
+            except Error as e:
+                print (e)
+            except:
+                print("LO SENTIMOS AH OCURRIDO UN ERROR")
+            lis_menu2=[1,2,3]
+            print("************MENU DE OPCIONES*********************")
+            print("         1.Reporte de reservaciones.              ")
+            print("    2.Exportar reporte tabular a excel.           ")
+            print("           3.Volver al menú.                       ")
+            print("***************************************************")
+            opcion_reporte=int(input("¿Cual es la opcion que deseas elegir? "))
+            print('*******************************************')
+            if opcion_reporte not in lis_menu2:
+                print ("Ingresar una opcion disponible")
+                continue
+            if opcion_reporte==1:
+                while True:
+                    fecha_consultar=input("Fecha a verificiar en formato (dd/mm/aaaa): ")
+                    if fecha_consultar=="":
+                        print("Debe de ingresar una fecha.")
+                        continue
+                    if(not re.match("^[0-9]{2}/[0-9]{2}/[0-9]{4}$",fecha_consultar)):
+                        print("La fecha debe tener el formato(dd/mm/aaaa)." )
+                        continue
+                    try:
+                        fecha = datetime.datetime.strptime(fecha, "%d/%m/%Y").date()
+                    except:
+                        print("La fecha ingresada no hay reservaciones")
+                        continue
+                    try:
+                        criterios = {"fecha":fecha_consultar}
+                        mi_cursor.execute("SELECT * FROM reservaciones WHERE DATE(fecha_registro) = :fecha;", criterios)
+                        registros = mi_cursor.fetchall()
+                        if fecha_registro in registros:
+                            print("*****************************************************************")
+                            print("Reporte de reservaciones para para el dia",fecha_registro)
+                            print("*****************************************************************")
+                            print( " SALA     CLIENTE           EVENTO                  TURNO       ")
+                            print("*****************************************************************")
+                            print( sala_registro,   nombre,    nombre_evento,     turno_reservado  )
+                            print("******************************************************************")
+                        else:
+                            print("NO HAY RESERVACIONES PARA ESE DIA" )
+                            break
+                    except:
+                        print("Lo sentimos ocurrio un error.")
+                        
+            if opcion_reporte==2:
+                while True:
+                    fecha_consultar=input("Fecha a verificiar en formato (dd/mm/aaaa): ")
+                    if fecha_consultar == "":
+                        print("Debe de ingresar la fecha que desea consultar.")
+                        continue
+                    if(not re.match("^[0-9]{2}/[0-9]{2}/[0-9]{4}$",fecha_consultar)):
+                        print("La fecha debe tener el formato(dd/mm/aaaa).\n" )
+                        continue
+                    try:
+                        fecha_consultar = datetime.datetime.strptime(fecha_consultar,"%d/%m/%Y").date()
+                    except:
+                        print("La Fecha Ingresada No es una Fecha Valida, Intente De Nuevo.\n")
+                        continue
+                    try:
+                        criterios = {"fecha":fecha_consultar}
+                        mi_cursor.execute("SELECT * FROM reservaciones WHERE DATE(fecha_reservacion) = :fecha;", criterios)
+
+                        registros = mi_cursor.fetchall()
+                            
+                        if not registro:
+                            print ("Lo sentimos no se encontro su reservacion, verifique nuevamente")
+                            break
+                
+                        if fecha_consultar in registros:
+                            libro = openpyxl.Workbook()
+                            hoja = libro["Sheet"]
+                            hoja.title = "Registro"
+                            hoja["A1"].value = "Salas"
+                            hoja["A2"].value =(sala_id)
+                            hoja["B1"].value ="Cliente"
+                            hoja["B2"].value=(nombre)
+                            hoja["C1"].value="Evento"
+                            hoja["C2"].value=(evento)
+                            hoja["D1"].value="Turno"
+                            hoja["D2"].value=(turno)
+                            libro.save("MiExcelDesdePython.xlsx")
+                    except:
+                        ("Lo sentimos ocurrio un error.")
+                        break
+            if opcion_reporte==3:
+                break
+    if opcion_menu == 3:
+        while True:
+            cupo=[]
+            cupo=0
+            clave_unica={}
+            nombre_sala_registrar={}
+            clave_unica=clave_id
+            sala_registro=input("Coloque el nombre de la sala: ").title().strip()
+            if sala_registro== "":
+                print("!Debe de ingresar un nombre para sala!")
+                continue
+            if sala_registro.isspace():
+                print("!Debe de ingresar un nombre para la sala!")
+                continue
+            if sala_registro in nombre_sala_registrar:
+                print("El nombre que usted ingreso ya esta registrado, intente con un nuevo nombre." )
+                continue
+            while True:
+                cupo=""
+                try:
+                    cupo=input("De cuanto es el cupo de tu sala?: ")
+                except:
+                    if cupo == "":
+                        print("!Debe de ingresar el cupo para sala!")
+                        continue
+                    if cupo.isspace():
+                        print("!Debe de ingresar el cupo para la sala!")
+                        continue
+                else:
+                    sala_id = max(nombre_sala.keys(), default=0) + 1
+                    nombre_sala[sala_id]= [nombre_sala,cupo]
+                    print("Nombre De La Sala: " , sala_registro)
+                    print("Id Sala: " , sala_id)
+                    print("Cupo: " , cupo)
+                    break
+            break
+            
+    if opcion_menu == 4:
+        while True:
+            nombre_ingresar=input("Coloque su nombre de usuario: ").title().strip()
+            
+            if nombre_ingresar == "":
+                print("El nombre No Puede Quedar Vacio.")
+                continue
+            
+            if nombre_ingresar==" ":
+                print("El nombre No Puede Quedar Vacio.")
+                continue
+            else:
+                clave_id = max(nombre.keys(), default=0) + 1
+                nombre[clave_id] =nombre_ingresar
+                print("Nombre Del Cliente: " , nombre_ingresar)
+                nombre_ingresar=(nombre)
+                print( "ID cliente: " ,clave_id)
+                clave_id=(nombre_sala)
+                sleep(3)
+                break
+            
+    if opcion_menu == 5:
+        break
